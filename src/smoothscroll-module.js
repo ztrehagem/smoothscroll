@@ -1,25 +1,9 @@
-var d = document;
 var w = window;
+var d = document;
 
-/*
- * globals
- */
 var Element = w.HTMLElement || w.Element;
 var SCROLL_TIME = 468;
 
-/*
- * object gathering original scroll methods
- */
-var original = {
-  scroll: w.scroll || w.scrollTo,
-  scrollBy: w.scrollBy,
-  elScroll: Element.prototype.scroll || scrollElement,
-  scrollIntoView: Element.prototype.scrollIntoView
-};
-
-/*
- * define timing method
- */
 var now = w.performance && w.performance.now
   ? w.performance.now.bind(w.performance) : Date.now;
 
@@ -42,33 +26,6 @@ function scrollElement(x, y) {
  */
 function ease(k) {
   return 0.5 * (1 - Math.cos(Math.PI * k));
-}
-
-/**
- * indicates if a smooth behavior should be applied
- * @method shouldBailOut
- * @param {Number|Object} x
- * @returns {Boolean}
- */
-function shouldBailOut(x) {
-  if (typeof x !== 'object'
-        || x === null
-        || x.behavior === undefined
-        || x.behavior === 'auto'
-        || x.behavior === 'instant') {
-    // first arg not an object/null
-    // or behavior is auto, instant or undefined
-    return true;
-  }
-
-  if (typeof x === 'object'
-        && x.behavior === 'smooth') {
-    // first argument is an object and behavior is smooth
-    return false;
-  }
-
-  // throw error when behavior is not supported
-  throw new TypeError('behavior not valid');
 }
 
 /**
@@ -128,209 +85,51 @@ function step(context) {
   }
 }
 
-/**
- * scrolls window with a smooth behavior
- * @method smoothScroll
- * @param {Object|Node} el
- * @param {Number} x
- * @param {Number} y
- */
 function smoothScroll(el, x, y) {
-  var scrollable;
-  var startX;
-  var startY;
-  var method;
-  var startTime = now();
-
-  // define scroll context
   if (el === d.body) {
-    scrollable = w;
-    startX = w.scrollX || w.pageXOffset;
-    startY = w.scrollY || w.pageYOffset;
-    method = original.scroll;
+    step({
+      scrollable: w,
+      startX: w.scrollX || w.pageXOffset,
+      startY: w.scrollY || w.pageYOffset,
+      method: w.scroll || w.scrollTo,
+      startTime: now(),
+      x,
+      y,
+    });
   } else {
-    scrollable = el;
-    startX = el.scrollLeft;
-    startY = el.scrollTop;
-    method = scrollElement;
+    step({
+      scrollable: el,
+      startX: el.scrollLeft,
+      startY: el.scrollTop,
+      method: scrollElement,
+      startTime: now(),
+      x,
+      y,
+    });
   }
-
-  // scroll looping over a frame
-  step({
-    scrollable: scrollable,
-    method: method,
-    startTime: startTime,
-    startX: startX,
-    startY: startY,
-    x: x,
-    y: y
-  });
 }
 
-/*
- * ORIGINAL METHODS OVERRIDES
- */
-
-// w.scroll and w.scrollTo
-// w.scroll = w.scrollTo = function() {
-//   // avoid smooth behavior if not required
-//   if (shouldBailOut(arguments[0])) {
-//     original.scroll.call(
-//       w,
-//       arguments[0].left || arguments[0],
-//       arguments[0].top || arguments[1]
-//     );
-//     return;
-//   }
-//
-//   // LET THE SMOOTHNESS BEGIN!
-//   smoothScroll.call(
-//     w,
-//     d.body,
-//     ~~arguments[0].left,
-//     ~~arguments[0].top
-//   );
-// };
-//
-// // w.scrollBy
-// w.scrollBy = function() {
-//   // avoid smooth behavior if not required
-//   if (shouldBailOut(arguments[0])) {
-//     original.scrollBy.call(
-//       w,
-//       arguments[0].left || arguments[0],
-//       arguments[0].top || arguments[1]
-//     );
-//     return;
-//   }
-//
-//   // LET THE SMOOTHNESS BEGIN!
-//   smoothScroll.call(
-//     w,
-//     d.body,
-//     ~~arguments[0].left + (w.scrollX || w.pageXOffset),
-//     ~~arguments[0].top + (w.scrollY || w.pageYOffset)
-//   );
-// };
-//
-// // Element.prototype.scroll and Element.prototype.scrollTo
-// Element.prototype.scroll = Element.prototype.scrollTo = function() {
-//   // avoid smooth behavior if not required
-//   if (shouldBailOut(arguments[0])) {
-//     original.elScroll.call(
-//         this,
-//         arguments[0].left || arguments[0],
-//         arguments[0].top || arguments[1]
-//     );
-//     return;
-//   }
-//
-//   var left = arguments[0].left;
-//   var top = arguments[0].top;
-//
-//   // LET THE SMOOTHNESS BEGIN!
-//   smoothScroll.call(
-//       this,
-//       this,
-//       typeof left === 'number' ? left : this.scrollLeft,
-//       typeof top === 'number' ? top : this.scrollTop
-//   );
-// };
-//
-// // Element.prototype.scrollBy
-// Element.prototype.scrollBy = function() {
-//   var arg0 = arguments[0];
-//
-//   if (typeof arg0 === 'object') {
-//     this.scroll({
-//       left: arg0.left + this.scrollLeft,
-//       top: arg0.top + this.scrollTop,
-//       behavior: arg0.behavior
-//     });
-//   } else {
-//     this.scroll(
-//       this.scrollLeft + arg0,
-//       this.scrollTop + arguments[1]
-//     );
-//   }
-// };
-//
-// // Element.prototype.scrollIntoView
-// Element.prototype.scrollIntoView = function() {
-//   // avoid smooth behavior if not required
-//   if (shouldBailOut(arguments[0])) {
-//     original.scrollIntoView.call(
-//       this,
-//       arguments[0] === undefined ? true : arguments[0]
-//     );
-//     return;
-//   }
-//
-//   // LET THE SMOOTHNESS BEGIN!
-//   var scrollableParent = findScrollableParent(this);
-//   var parentRects = scrollableParent.getBoundingClientRect();
-//   var clientRects = this.getBoundingClientRect();
-//
-//   if (scrollableParent !== d.body) {
-//     // reveal element inside parent
-//     smoothScroll.call(
-//       this,
-//       scrollableParent,
-//       scrollableParent.scrollLeft + clientRects.left - parentRects.left,
-//       scrollableParent.scrollTop + clientRects.top - parentRects.top
-//     );
-//     // reveal parent in viewport
-//     scrollBy({
-//       left: parentRects.left,
-//       top: parentRects.top,
-//       // behavior: 'smooth'
-//     });
-//   } else {
-//     // reveal element in viewport
-//     scrollBy({
-//       left: clientRects.left,
-//       top: clientRects.top,
-//       // behavior: 'smooth'
-//     });
-//   }
-// };
-
-function scrollBy() {
-  // LET THE SMOOTHNESS BEGIN!
-  smoothScroll.call(
-    w,
+function scrollBy(left, top) {
+  smoothScroll(
     d.body,
-    ~~arguments[0].left + (w.scrollX || w.pageXOffset),
-    ~~arguments[0].top + (w.scrollY || w.pageYOffset)
+    ~~left + (w.scrollX || w.pageXOffset),
+    ~~top + (w.scrollY || w.pageYOffset)
   );
 };
 
-exports.scrollToElement = function(element) {
-  // LET THE SMOOTHNESS BEGIN!
+export function smoothScrollToElement(element) {
   var scrollableParent = findScrollableParent(element);
   var parentRects = scrollableParent.getBoundingClientRect();
   var clientRects = element.getBoundingClientRect();
 
   if (scrollableParent !== d.body) {
-    // reveal element inside parent
-    smoothScroll.call(
-      element,
+    smoothScroll(
       scrollableParent,
       scrollableParent.scrollLeft + clientRects.left - parentRects.left,
       scrollableParent.scrollTop + clientRects.top - parentRects.top
     );
-    // reveal parent in viewport
-    scrollBy({
-      left: parentRects.left,
-      top: parentRects.top,
-      behavior: 'smooth'
-    });
+    scrollBy(parentRects.left, parentRects.top);
   } else {
-    // reveal element in viewport
-    scrollBy({
-      left: clientRects.left,
-      top: clientRects.top,
-      behavior: 'smooth'
-    });
+    scrollBy(clientRects.left, clientRects.top);
   }
 };
