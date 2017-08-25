@@ -117,7 +117,7 @@ function scrollBy(left, top) {
   );
 };
 
-export function smoothScrollToElement(element) {
+module.exports = function smoothScrollToElement(element) {
   var scrollableParent = findScrollableParent(element);
   var parentRects = scrollableParent.getBoundingClientRect();
   var clientRects = element.getBoundingClientRect();
