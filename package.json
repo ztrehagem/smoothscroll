@@ -21,7 +21,7 @@
     "gulp-load-plugins": "^1.2.4"
   },
   "description": "Polyfill for smooth scroll behavior",
-  "main": "dist/smoothscroll.js",
+  "main": "src/smoothscroll-module.js",
   "scripts": {
     "test": "gulp lint",
     "build": "gulp"
